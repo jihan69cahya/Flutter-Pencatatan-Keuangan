@@ -40,6 +40,7 @@ dependencies:
   toastification: ^3.0.3
   iconsax: ^0.0.8
   package_info_plus: ^8.0.0
+  flutter_dotenv: ^6.0.0
 
 dev_dependencies:
   flutter_launcher_icons: ^0.13.1

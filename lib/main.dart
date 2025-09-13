@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:pencatatan/pages/auth/login.dart';
 import 'package:pencatatan/pages/auth/register.dart';
@@ -6,7 +7,8 @@ import 'package:pencatatan/pages/dashboard.dart';
 import 'package:pencatatan/pages/pencatatan.dart';
 import 'package:pencatatan/pages/profile.dart';
 
-void main() {
+Future<void> main() async {
+  await dotenv.load(fileName: ".env");
   runApp(const MyApp());
 }
 
