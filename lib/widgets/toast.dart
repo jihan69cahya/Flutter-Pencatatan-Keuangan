@@ -40,6 +40,7 @@ class Toast {
       dragToClose: true,
       pauseOnHover: false,
       applyBlurEffect: true,
+      primaryColor: Color(0xFF1976D2),
     );
   }
 

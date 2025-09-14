@@ -6,6 +6,8 @@ import 'package:pencatatan/pages/auth/register.dart';
 import 'package:pencatatan/pages/dashboard.dart';
 import 'package:pencatatan/pages/pencatatan.dart';
 import 'package:pencatatan/pages/profile.dart';
+import 'package:pencatatan/pages/formTransaksi.dart';
+import 'package:pencatatan/pages/formProfile.dart';
 
 Future<void> main() async {
   await dotenv.load(fileName: ".env");
@@ -22,8 +24,11 @@ class MyApp extends StatelessWidget {
       title: 'Pencatatan',
       home: const Login(),
       routes: {
+        '/main': (context) => Main(),
         '/login': (context) => Login(),
         '/register': (context) => Register(),
+        '/form-transaksi': (context) => FormTransaksi(),
+        '/form-profile': (context) => FormProfile(),
       },
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
