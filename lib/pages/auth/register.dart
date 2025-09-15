@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:pencatatan/widgets/toast.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Register extends StatefulWidget {
   const Register({super.key});
@@ -19,11 +23,24 @@ class _RegisterState extends State<Register> {
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   String _appVersion = '';
+  bool _loading = false;
+
+  final String baseUrl = dotenv.env['BASE_URL'] ?? 'URL_NOT_FOUND';
 
   @override
   void initState() {
     super.initState();
     _loadAppVersion();
+    _checkToken();
+  }
+
+  void _checkToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    if (token != null) {
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/main');
+    }
   }
 
   @override
@@ -44,8 +61,37 @@ class _RegisterState extends State<Register> {
   }
 
   Future<void> _handleRegister() async {
-    if (_formKey.currentState!.validate()) {
-      Toast.showSuccessToast(context, "Berhasil Registrasi");
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _loading = true);
+
+    final url = Uri.parse('$baseUrl/register');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'nama': _nameController.text,
+          'telp': _phoneController.text,
+          'email': _emailController.text.trim(),
+          'password': _passwordController.text.trim(),
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 201) {
+        if (!mounted) return;
+        Toast.showSuccessToast(context, "Berhasil Register");
+        Navigator.pushReplacementNamed(context, '/login');
+      } else {
+        Toast.showErrorToast(context, data['message'] ?? "Registrasi gagal");
+      }
+    } catch (e) {
+      Toast.showErrorToast(context, "Terjadi kesalahan koneksi: $e");
+    } finally {
+      setState(() => _loading = false);
     }
   }
 
@@ -282,7 +328,7 @@ class _RegisterState extends State<Register> {
                   const SizedBox(height: 24),
 
                   ElevatedButton(
-                    onPressed: _handleRegister,
+                    onPressed: _loading ? null : _handleRegister,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: const Color(0xFF2a5298),
@@ -292,13 +338,22 @@ class _RegisterState extends State<Register> {
                       ),
                       elevation: 2,
                     ),
-                    child: const Text(
-                      'Daftar',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: _loading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF2a5298),
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'Daftar',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
 
                   const SizedBox(height: 24),
@@ -312,7 +367,7 @@ class _RegisterState extends State<Register> {
                       ),
                       GestureDetector(
                         onTap: () {
-                          Navigator.pop(context);
+                          Navigator.pushReplacementNamed(context, '/login');
                         },
                         child: const Text(
                           'Login di sini',
