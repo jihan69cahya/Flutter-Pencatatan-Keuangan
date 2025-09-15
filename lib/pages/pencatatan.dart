@@ -382,7 +382,7 @@ class _PencatatanState extends State<Pencatatan> {
             '$totalItems data',
             style: TextStyle(
               fontSize: 11,
-              color: Colors.grey[600],
+              color: Colors.white,
               fontWeight: FontWeight.w500,
             ),
           ),

@@ -26,21 +26,21 @@ class _FormTransaksiState extends State<FormTransaksi>
       'value': 'SALDO AWAL',
       'label': 'Saldo Awal',
       'icon': Icons.account_balance_wallet_rounded,
-      'color': const Color(0xFF1976D2),
+      'color': const Color(0xFF2a5298),
       'description': 'Saldo pembukaan akun',
     },
     {
       'value': 'MASUK',
       'label': 'Pemasukan',
       'icon': Icons.trending_up_rounded,
-      'color': const Color(0xFF4CAF50),
+      'color': const Color(0xFF27AE60),
       'description': 'Dana masuk ke rekening',
     },
     {
       'value': 'KELUAR',
       'label': 'Pengeluaran',
       'icon': Icons.trending_down_rounded,
-      'color': const Color(0xFFE53935),
+      'color': const Color(0xFFE74C3C),
       'description': 'Dana keluar dari rekening',
     },
   ];
@@ -76,8 +76,8 @@ class _FormTransaksiState extends State<FormTransaksi>
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF1976D2), Color(0xFF1565C0), Color(0xFF0D47A1)],
-            stops: [0.0, 0.5, 1.0],
+            colors: [Color(0xFF2a5298), Color(0xFF1e3a8a), Color(0xFF1e293b)],
+            stops: [0.0, 0.6, 1.0],
           ),
         ),
         child: SafeArea(
@@ -89,7 +89,7 @@ class _FormTransaksiState extends State<FormTransaksi>
                 child: Container(
                   margin: const EdgeInsets.only(top: 20),
                   decoration: const BoxDecoration(
-                    color: Color(0xFFF8FAFF),
+                    color: Color(0xFFF8FAFE),
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(30),
                       topRight: Radius.circular(30),
@@ -156,8 +156,12 @@ class _FormTransaksiState extends State<FormTransaksi>
         children: [
           Container(
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withOpacity(0.15),
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.2),
+                width: 1,
+              ),
             ),
             child: IconButton(
               icon: const Icon(
@@ -185,8 +189,12 @@ class _FormTransaksiState extends State<FormTransaksi>
           ),
           Container(
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withOpacity(0.15),
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.2),
+                width: 1,
+              ),
             ),
             child: IconButton(
               icon: const Icon(Icons.refresh_rounded, color: Colors.white),
@@ -206,15 +214,15 @@ class _FormTransaksiState extends State<FormTransaksi>
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF1976D2), Color(0xFF1565C0)],
+          colors: [Color(0xFF2a5298), Color(0xFF3b82f6)],
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1976D2).withOpacity(0.3),
+            color: const Color(0xFF2a5298).withOpacity(0.25),
             spreadRadius: 0,
             blurRadius: 20,
-            offset: const Offset(0, 10),
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -279,10 +287,10 @@ class _FormTransaksiState extends State<FormTransaksi>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: const Color(0xFF2a5298).withOpacity(0.08),
             spreadRadius: 0,
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -295,7 +303,7 @@ class _FormTransaksiState extends State<FormTransaksi>
               children: [
                 Icon(
                   Icons.calendar_today_rounded,
-                  color: const Color(0xFF1976D2),
+                  color: const Color(0xFF2a5298),
                   size: 20,
                 ),
                 const SizedBox(width: 8),
@@ -304,7 +312,7 @@ class _FormTransaksiState extends State<FormTransaksi>
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF1976D2),
+                    color: Color(0xFF2a5298),
                   ),
                 ),
               ],
@@ -320,7 +328,7 @@ class _FormTransaksiState extends State<FormTransaksi>
                 hintStyle: TextStyle(color: Colors.grey[400]),
                 prefixIcon: Icon(
                   Icons.event_rounded,
-                  color: const Color(0xFF1976D2),
+                  color: const Color(0xFF2a5298),
                 ),
                 suffixIcon: Icon(Icons.touch_app, color: Colors.grey[400]),
                 border: OutlineInputBorder(
@@ -328,7 +336,7 @@ class _FormTransaksiState extends State<FormTransaksi>
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: const Color(0xFFF8FAFF),
+                fillColor: const Color(0xFFF1F5F9),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 16,
@@ -356,10 +364,10 @@ class _FormTransaksiState extends State<FormTransaksi>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: const Color(0xFF2a5298).withOpacity(0.08),
             spreadRadius: 0,
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -372,7 +380,7 @@ class _FormTransaksiState extends State<FormTransaksi>
               children: [
                 Icon(
                   Icons.category_rounded,
-                  color: const Color(0xFF1976D2),
+                  color: const Color(0xFF2a5298),
                   size: 20,
                 ),
                 const SizedBox(width: 8),
@@ -381,7 +389,7 @@ class _FormTransaksiState extends State<FormTransaksi>
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF1976D2),
+                    color: Color(0xFF2a5298),
                   ),
                 ),
               ],
@@ -396,12 +404,12 @@ class _FormTransaksiState extends State<FormTransaksi>
                   margin: const EdgeInsets.only(bottom: 8),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? const Color(0xFF1976D2).withOpacity(0.1)
-                        : const Color(0xFFF8FAFF),
+                        ? const Color(0xFF2a5298).withOpacity(0.08)
+                        : const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isSelected
-                          ? const Color(0xFF1976D2)
+                          ? const Color(0xFF2a5298)
                           : Colors.grey.withOpacity(0.2),
                       width: isSelected ? 2 : 1,
                     ),
@@ -432,8 +440,8 @@ class _FormTransaksiState extends State<FormTransaksi>
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                   color: isSelected
-                                      ? const Color(0xFF1976D2)
-                                      : Colors.black87,
+                                      ? const Color(0xFF2a5298)
+                                      : const Color(0xFF1e293b),
                                 ),
                               ),
                               Text(
@@ -455,7 +463,7 @@ class _FormTransaksiState extends State<FormTransaksi>
                         _selectedTipe = value!;
                       });
                     },
-                    activeColor: const Color(0xFF1976D2),
+                    activeColor: const Color(0xFF2a5298),
                   ),
                 );
               }).toList(),
@@ -473,10 +481,10 @@ class _FormTransaksiState extends State<FormTransaksi>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: const Color(0xFF2a5298).withOpacity(0.08),
             spreadRadius: 0,
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -489,7 +497,7 @@ class _FormTransaksiState extends State<FormTransaksi>
               children: [
                 Icon(
                   Icons.monetization_on_rounded,
-                  color: const Color(0xFF1976D2),
+                  color: const Color(0xFF2a5298),
                   size: 20,
                 ),
                 const SizedBox(width: 8),
@@ -498,7 +506,7 @@ class _FormTransaksiState extends State<FormTransaksi>
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF1976D2),
+                    color: Color(0xFF2a5298),
                   ),
                 ),
               ],
@@ -520,14 +528,14 @@ class _FormTransaksiState extends State<FormTransaksi>
                 prefixStyle: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF1976D2),
+                  color: Color(0xFF2a5298),
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: const Color(0xFFF8FAFF),
+                fillColor: const Color(0xFFF1F5F9),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 16,
@@ -536,7 +544,7 @@ class _FormTransaksiState extends State<FormTransaksi>
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: Color(0xFF1e293b),
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -563,10 +571,10 @@ class _FormTransaksiState extends State<FormTransaksi>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: const Color(0xFF2a5298).withOpacity(0.08),
             spreadRadius: 0,
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -579,7 +587,7 @@ class _FormTransaksiState extends State<FormTransaksi>
               children: [
                 Icon(
                   Icons.description_rounded,
-                  color: const Color(0xFF1976D2),
+                  color: const Color(0xFF2a5298),
                   size: 20,
                 ),
                 const SizedBox(width: 8),
@@ -588,7 +596,7 @@ class _FormTransaksiState extends State<FormTransaksi>
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF1976D2),
+                    color: Color(0xFF2a5298),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -598,14 +606,14 @@ class _FormTransaksiState extends State<FormTransaksi>
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.grey[200],
+                    color: const Color(0xFF64748B).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(
+                  child: const Text(
                     'Opsional',
                     style: TextStyle(
                       fontSize: 10,
-                      color: Colors.grey[600],
+                      color: Color(0xFF64748B),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -626,7 +634,7 @@ class _FormTransaksiState extends State<FormTransaksi>
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: const Color(0xFFF8FAFF),
+                fillColor: const Color(0xFFF1F5F9),
                 contentPadding: const EdgeInsets.all(16),
               ),
               style: const TextStyle(fontSize: 16),
@@ -645,12 +653,12 @@ class _FormTransaksiState extends State<FormTransaksi>
           height: 56,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFF1976D2), Color(0xFF1565C0)],
+              colors: [Color(0xFF2a5298), Color(0xFF3b82f6)],
             ),
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF1976D2).withOpacity(0.3),
+                color: const Color(0xFF2a5298).withOpacity(0.3),
                 spreadRadius: 0,
                 blurRadius: 12,
                 offset: const Offset(0, 6),
@@ -673,11 +681,7 @@ class _FormTransaksiState extends State<FormTransaksi>
                 SizedBox(width: 12),
                 Text(
                   'Simpan Transaksi',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                  style: TextStyle(fontSize: 18, color: Colors.white),
                 ),
               ],
             ),
@@ -690,8 +694,8 @@ class _FormTransaksiState extends State<FormTransaksi>
           child: OutlinedButton(
             onPressed: () => Navigator.pop(context),
             style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF1976D2),
-              side: const BorderSide(color: Color(0xFF1976D2), width: 2),
+              foregroundColor: const Color(0xFF2a5298),
+              side: const BorderSide(color: Color(0xFF2a5298), width: 2),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -702,10 +706,7 @@ class _FormTransaksiState extends State<FormTransaksi>
               children: [
                 Icon(Icons.cancel_rounded, size: 24),
                 SizedBox(width: 12),
-                Text(
-                  'Batal',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                ),
+                Text('Batal', style: TextStyle(fontSize: 18)),
               ],
             ),
           ),
@@ -724,10 +725,10 @@ class _FormTransaksiState extends State<FormTransaksi>
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFF1976D2),
+              primary: Color(0xFF2a5298),
               onPrimary: Colors.white,
               surface: Colors.white,
-              onSurface: Colors.black87,
+              onSurface: Color(0xFF1e293b),
             ),
           ),
           child: child!,
@@ -762,7 +763,7 @@ class _FormTransaksiState extends State<FormTransaksi>
             const Text('Form berhasil direset'),
           ],
         ),
-        backgroundColor: const Color(0xFF1976D2),
+        backgroundColor: const Color(0xFF2a5298),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -784,7 +785,7 @@ class _FormTransaksiState extends State<FormTransaksi>
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
               gradient: const LinearGradient(
-                colors: [Color(0xFF1976D2), Color(0xFF1565C0)],
+                colors: [Color(0xFF2a5298), Color(0xFF3b82f6)],
               ),
             ),
             child: const Column(
