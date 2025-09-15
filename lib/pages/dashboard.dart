@@ -15,7 +15,6 @@ class Dashboard extends StatefulWidget {
 }
 
 class _DashboardState extends State<Dashboard> {
-  // Data dari API
   double totalPemasukan = 0;
   double totalPengeluaran = 0;
   double saldoHariIni = 0;
@@ -90,7 +89,6 @@ class _DashboardState extends State<Dashboard> {
     }
   }
 
-  // Generate bar chart data dari API
   List<BarChartGroupData> _generateBarData() {
     List<BarChartGroupData> barData = [];
 
@@ -120,12 +118,21 @@ class _DashboardState extends State<Dashboard> {
     return barData;
   }
 
-  // Generate month names untuk chart
   String _getMonthName(int monthNumber) {
     const months = [
-      '', // index 0 tidak digunakan
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      '',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return months[monthNumber] ?? 'Unknown';
   }
@@ -300,7 +307,6 @@ class _DashboardState extends State<Dashboard> {
                     const SizedBox(height: 24),
                   ],
 
-                  // Pie Chart - hanya tampil jika ada data pemasukan atau pengeluaran
                   if (totalPemasukan > 0 || totalPengeluaran > 0) ...[
                     const Text(
                       'Proporsi Total Pemasukan vs Pengeluaran',
@@ -382,7 +388,6 @@ class _DashboardState extends State<Dashboard> {
                     const SizedBox(height: 24),
                   ],
 
-                  // Tampilkan pesan jika tidak ada data
                   if (transaksiData.isEmpty && !isLoading)
                     Container(
                       width: double.infinity,
@@ -424,7 +429,6 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
-  // Helper untuk menentukan nilai maksimum Y pada chart
   double _getMaxYValue() {
     double maxValue = 0;
     for (var transaksi in transaksiData) {
@@ -433,7 +437,6 @@ class _DashboardState extends State<Dashboard> {
       if (pemasukan > maxValue) maxValue = pemasukan;
       if (pengeluaran > maxValue) maxValue = pengeluaran;
     }
-    // Tambahkan margin 20% untuk tampilan yang lebih baik
     return maxValue * 1.2;
   }
 
