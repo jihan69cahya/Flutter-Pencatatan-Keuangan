@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:pencatatan/pages/auth/login.dart';
 import 'package:pencatatan/widgets/toast.dart';
@@ -13,12 +14,65 @@ class Profile extends StatefulWidget {
 }
 
 class _ProfileState extends State<Profile> {
-  final String userName = "Jihan Cahya Firmana";
-  final String userEmail = "jihan69cahya@gmail.com";
-  final String userPhone = "+62895414580242";
-  final String userAvatar =
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face";
+  String userName = '';
+  String userEmail = '';
+  String userPhone = '';
+  bool isLoading = true;
+
   final String baseUrl = dotenv.env['BASE_URL'] ?? 'URL_NOT_FOUND';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfile();
+  }
+
+  Future<void> _fetchProfile() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (token == null) {
+      if (!mounted) return;
+      Toast.showErrorToast(context, "Token tidak ditemukan");
+      return;
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/profile'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body)['data'];
+        setState(() {
+          userName = jsonData['name'] ?? '';
+          userEmail = jsonData['email'] ?? '';
+          userPhone = jsonData['telp'] ?? '';
+          isLoading = false;
+        });
+      } else {
+        Toast.showErrorToast(context, "Gagal mengambil data profile");
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      Toast.showErrorToast(context, "Terjadi kesalahan: $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   Future<void> _performLogout() async {
     final prefs = await SharedPreferences.getInstance();
@@ -64,163 +118,160 @@ class _ProfileState extends State<Profile> {
         centerTitle: true,
         automaticallyImplyLeading: false,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFF2a5298), Color(0xFF3d6bb3)],
-                ),
-              ),
+      body: isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFF2a5298)),
+            )
+          : SingleChildScrollView(
               child: Column(
                 children: [
-                  const SizedBox(height: 20),
                   Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 4),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 10,
-                          offset: const Offset(0, 5),
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0xFF2a5298), Color(0xFF3d6bb3)],
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 20),
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 4),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 10,
+                                offset: const Offset(0, 5),
+                              ),
+                            ],
+                          ),
+                          child: CircleAvatar(
+                            radius: 60,
+                            backgroundImage: AssetImage('assets/profile.png'),
+                            backgroundColor: Colors.grey[300],
+                          ),
                         ),
+                        const SizedBox(height: 16),
+                        Text(
+                          userName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Pengguna',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.8),
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 30),
                       ],
                     ),
-                    child: CircleAvatar(
-                      radius: 60,
-                      backgroundImage: NetworkImage(userAvatar),
-                      backgroundColor: Colors.grey[300],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Informasi Personal',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2a5298),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildInfoCard(
+                          icon: Icons.email_outlined,
+                          title: 'Email',
+                          subtitle: userEmail,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildInfoCard(
+                          icon: Icons.phone_outlined,
+                          title: 'Nomor Telepon',
+                          subtitle: userPhone,
+                        ),
+                        const SizedBox(height: 30),
+                        // SizedBox(
+                        //   width: double.infinity,
+                        //   height: 50,
+                        //   child: ElevatedButton(
+                        //     onPressed: () {
+                        //       _showEditProfileDialog(context);
+                        //     },
+                        //     style: ElevatedButton.styleFrom(
+                        //       backgroundColor: const Color(0xFF2a5298),
+                        //       foregroundColor: Colors.white,
+                        //       shape: RoundedRectangleBorder(
+                        //         borderRadius: BorderRadius.circular(12),
+                        //       ),
+                        //       elevation: 2,
+                        //     ),
+                        //     child: const Row(
+                        //       mainAxisAlignment: MainAxisAlignment.center,
+                        //       children: [
+                        //         Icon(Icons.edit_outlined),
+                        //         SizedBox(width: 8),
+                        //         Text(
+                        //           'Edit Profile',
+                        //           style: TextStyle(
+                        //             fontSize: 16,
+                        //             fontWeight: FontWeight.w600,
+                        //           ),
+                        //         ),
+                        //       ],
+                        //     ),
+                        //   ),
+                        // ),
+
+                        // const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: OutlinedButton(
+                            onPressed: () {
+                              _showLogoutDialog(context);
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.red[600],
+                              side: BorderSide(color: Colors.red[600]!),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.logout),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Logout',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    userName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Pengguna',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 30),
                 ],
               ),
             ),
-
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Informasi Personal',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2a5298),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  _buildInfoCard(
-                    icon: Icons.email_outlined,
-                    title: 'Email',
-                    subtitle: userEmail,
-                  ),
-                  const SizedBox(height: 12),
-
-                  _buildInfoCard(
-                    icon: Icons.phone_outlined,
-                    title: 'Nomor Telepon',
-                    subtitle: userPhone,
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        _showEditProfileDialog(context);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2a5298),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 2,
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.edit_outlined),
-                          SizedBox(width: 8),
-                          Text(
-                            'Edit Profile',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: OutlinedButton(
-                      onPressed: () {
-                        _showLogoutDialog(context);
-                      },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red[600],
-                        side: BorderSide(color: Colors.red[600]!),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.logout),
-                          SizedBox(width: 8),
-                          Text(
-                            'Logout',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 

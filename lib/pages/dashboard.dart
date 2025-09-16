@@ -149,7 +149,9 @@ class _DashboardState extends State<Dashboard> {
         automaticallyImplyLeading: false,
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFF2a5298)),
+            )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
