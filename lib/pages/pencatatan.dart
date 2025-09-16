@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pencatatan/helpers/helpers.dart';
+import 'package:pencatatan/widgets/toast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -62,13 +63,16 @@ class _PencatatanState extends State<Pencatatan> {
             double debit = 0.0;
             double kredit = 0.0;
             double saldo = 0.0;
+            double nominal = 0.0;
 
             if (item['debit'] != null && item['debit'] != '-') {
               debit = double.tryParse(item['debit'].toString()) ?? 0.0;
+              nominal = debit;
             }
 
             if (item['kredit'] != null && item['kredit'] != '-') {
               kredit = double.tryParse(item['kredit'].toString()) ?? 0.0;
+              nominal = kredit;
             }
 
             if (item['saldo'] != null && item['saldo'] != '-') {
@@ -76,11 +80,13 @@ class _PencatatanState extends State<Pencatatan> {
             }
 
             return {
+              'id': item['id'] ?? '',
               'tanggal': item['tanggal'] ?? '',
               'keterangan': item['keterangan'] ?? '',
               'masuk': debit,
               'keluar': kredit,
               'saldo': saldo,
+              'nominal': nominal,
               'type': item['tipe']?.toString().toLowerCase(),
             };
           }).toList();
@@ -118,6 +124,92 @@ class _PencatatanState extends State<Pencatatan> {
         });
       }
     }
+  }
+
+  void _addTransaction() async {
+    final result = await Navigator.pushNamed(context, '/form-transaksi');
+
+    if (result != null && (result as Map)['success'] == true) {
+      _fetchDataTransaksi();
+    }
+  }
+
+  void _editTransaction(int index) async {
+    final result = await Navigator.pushNamed(
+      context,
+      '/form-transaksi',
+      arguments: {
+        'isEdit': true,
+        'index': index,
+        'transaksi': transaksiList[index],
+      },
+    );
+
+    if (result != null && (result as Map)['success'] == true) {
+      _fetchDataTransaksi();
+    }
+  }
+
+  Future<void> _deleteTransaction(int index) async {
+    final transaksi = transaksiList[index];
+    final id = transaksi['id'];
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Konfirmasi Hapus'),
+          content: const Text(
+            'Apakah Anda yakin ingin menghapus transaksi ini?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Batal'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+
+                try {
+                  final response = await http.post(
+                    Uri.parse("$baseUrl/hapus-transaksi"),
+                    headers: {
+                      "Content-Type": "application/json",
+                      "Accept": "application/json",
+                      'Authorization': 'Bearer $token',
+                    },
+                    body: jsonEncode({"id": id}),
+                  );
+
+                  if (!mounted) return;
+
+                  if (response.statusCode == 200) {
+                    Toast.showSuccessToast(
+                      context,
+                      'Transaksi berhasil dihapus',
+                    );
+                    _fetchDataTransaksi();
+                  } else {
+                    final error = jsonDecode(response.body);
+                    Toast.showErrorToast(
+                      context,
+                      "Gagal hapus: ${error['error'] ?? 'Terjadi kesalahan'}",
+                    );
+                    debugPrint(error.toString());
+                  }
+                } catch (e) {
+                  Toast.showErrorToast(context, "Error: $e");
+                }
+              },
+              child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _goToPage(int page) {
@@ -292,9 +384,7 @@ class _PencatatanState extends State<Pencatatan> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, '/form-transaksi');
-        },
+        onPressed: _addTransaction,
         backgroundColor: const Color(0xFF2a5298),
         child: const Icon(Icons.add, color: Colors.white),
       ),
@@ -557,6 +647,7 @@ class _PencatatanState extends State<Pencatatan> {
 
         Expanded(
           child: ListView.builder(
+            padding: const EdgeInsets.only(bottom: 80),
             itemCount: transaksiList.length,
             itemBuilder: (context, index) {
               final transaksi = transaksiList[index];
@@ -570,7 +661,7 @@ class _PencatatanState extends State<Pencatatan> {
 
   Widget _buildCardView() {
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
       itemCount: transaksiList.length,
       itemBuilder: (context, index) {
         final transaksi = transaksiList[index];
@@ -607,7 +698,7 @@ class _PencatatanState extends State<Pencatatan> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _formatDate(transaksi['tanggal']),
+                      Helpers.formatDate(transaksi['tanggal']),
                       style: const TextStyle(
                         fontSize: 12,
                         color: Colors.grey,
@@ -766,43 +857,45 @@ class _PencatatanState extends State<Pencatatan> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Container(
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
+                if (transaksi['type'] != 'saldo awal') ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(6),
-                      onTap: () => _deleteTransaction(index),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.delete_outline,
-                              size: 14,
-                              color: Colors.red[600],
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Hapus',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(6),
+                        onTap: () => _deleteTransaction(index),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.delete_outline,
+                                size: 14,
                                 color: Colors.red[600],
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 4),
+                              Text(
+                                'Hapus',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.red[600],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ],
@@ -826,7 +919,7 @@ class _PencatatanState extends State<Pencatatan> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _formatDate(transaksi['tanggal']),
+                  Helpers.formatDate(transaksi['tanggal']),
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -930,77 +1023,5 @@ class _PencatatanState extends State<Pencatatan> {
         ],
       ),
     );
-  }
-
-  void _editTransaction(int index) {
-    Navigator.pushNamed(
-      context,
-      '/form-transaksi',
-      arguments: {
-        'isEdit': true,
-        'index': index,
-        'transaksi': transaksiList[index],
-      },
-    );
-  }
-
-  void _deleteTransaction(int index) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Konfirmasi Hapus'),
-          content: const Text(
-            'Apakah Anda yakin ingin menghapus transaksi ini?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Batal'),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  transaksiList.removeAt(index);
-                });
-                Navigator.of(context).pop();
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Transaksi berhasil dihapus'),
-                    backgroundColor: Color(0xFF2a5298),
-                  ),
-                );
-              },
-              child: const Text('Hapus', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  String _formatDate(String dateString) {
-    try {
-      final date = DateTime.parse(dateString);
-      final months = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
-      ];
-
-      return '${date.day} ${months[date.month - 1]} ${date.year}';
-    } catch (e) {
-      return dateString;
-    }
   }
 }

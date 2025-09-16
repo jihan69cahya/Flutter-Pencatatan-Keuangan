@@ -8,10 +8,11 @@ import 'package:pencatatan/pages/pencatatan.dart';
 import 'package:pencatatan/pages/profile.dart';
 import 'package:pencatatan/pages/formTransaksi.dart';
 import 'package:pencatatan/pages/formProfile.dart';
+import 'package:toastification/toastification.dart';
 
 Future<void> main() async {
   await dotenv.load(fileName: ".env");
-  runApp(const MyApp());
+  runApp(ToastificationWrapper(child: const MyApp()));
 }
 
 class MyApp extends StatelessWidget {

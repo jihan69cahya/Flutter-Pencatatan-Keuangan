@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pencatatan/widgets/toast.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:pencatatan/helpers/helpers.dart';
 
 class FormTransaksi extends StatefulWidget {
   const FormTransaksi({super.key});
@@ -18,32 +23,61 @@ class _FormTransaksiState extends State<FormTransaksi>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
+  late bool isEdit;
+  late int? index;
+  late Map<String, dynamic>? transaksi;
+  int? _transactionId;
+
+  final String baseUrl = dotenv.env['BASE_URL'] ?? 'URL_NOT_FOUND';
+
   String _selectedTipe = 'MASUK';
   DateTime _selectedDate = DateTime.now();
 
-  final List<Map<String, dynamic>> _tipeOptions = [
+  final List<Map<String, dynamic>> _allTipeOptions = [
     {
       'value': 'SALDO AWAL',
       'label': 'Saldo Awal',
       'icon': Icons.account_balance_wallet_rounded,
-      'color': const Color(0xFF2a5298),
+      'color': Color(0xFF2a5298),
       'description': 'Saldo pembukaan akun',
     },
     {
       'value': 'MASUK',
       'label': 'Pemasukan',
       'icon': Icons.trending_up_rounded,
-      'color': const Color(0xFF27AE60),
+      'color': Color(0xFF27AE60),
       'description': 'Dana masuk ke rekening',
     },
     {
       'value': 'KELUAR',
       'label': 'Pengeluaran',
       'icon': Icons.trending_down_rounded,
-      'color': const Color(0xFFE74C3C),
+      'color': Color(0xFFE74C3C),
       'description': 'Dana keluar dari rekening',
     },
   ];
+
+  List<Map<String, dynamic>> _tipeOptions = [];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final args =
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
+
+    if (args != null) {
+      isEdit = args['isEdit'] ?? false;
+      index = args['index'];
+      transaksi = args['transaksi'];
+    } else {
+      isEdit = false;
+      index = null;
+      transaksi = null;
+    }
+
+    _checkEdit();
+  }
 
   @override
   void initState() {
@@ -55,8 +89,233 @@ class _FormTransaksiState extends State<FormTransaksi>
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
-    _tanggalController.text = _formatDate(_selectedDate);
+    _tanggalController.text = Helpers.formatDate(_selectedDate.toString());
     _animationController.forward();
+  }
+
+  Future<void> _checkEdit() async {
+    if (isEdit) {
+      final tipe = transaksi?['type'].toString().toUpperCase();
+      final tanggal = transaksi?['tanggal'].toString();
+      final nominal = transaksi?['nominal'];
+      final keterangan = transaksi?['keterangan']?.toString() ?? '';
+      final id = transaksi?['id'];
+
+      setState(() {
+        _tipeOptions = _allTipeOptions
+            .where((opt) => opt['value'] == tipe)
+            .toList();
+        _selectedTipe = tipe!;
+
+        _transactionId = id;
+
+        if (tanggal != null) {
+          _selectedDate = DateTime.parse(tanggal);
+          _tanggalController.text = Helpers.formatDate(tanggal);
+        }
+
+        if (nominal != null) {
+          _nominalController.text = _formatCurrency(nominal.toDouble());
+        }
+
+        _keteranganController.text = keterangan;
+      });
+    } else {
+      _cekSaldoAwal();
+      _transactionId = null;
+    }
+  }
+
+  Future<void> _cekSaldoAwal() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/cek-saldo-awal'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final result = jsonDecode(response.body);
+
+        setState(() {
+          if (result == 1) {
+            _tipeOptions = _allTipeOptions
+                .where((opt) => opt['value'] != 'SALDO AWAL')
+                .toList();
+            _selectedTipe = 'MASUK';
+          } else {
+            _tipeOptions = _allTipeOptions
+                .where((opt) => opt['value'] == 'SALDO AWAL')
+                .toList();
+            _selectedTipe = 'SALDO AWAL';
+          }
+        });
+      } else {
+        Toast.showErrorToast(context, 'Gagal cek saldo awal');
+      }
+    } catch (e) {
+      Toast.showErrorToast(context, 'Error: $e');
+    }
+  }
+
+  Future<void> _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF2a5298),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Color(0xFF1e293b),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+        _tanggalController.text = Helpers.formatDate(picked.toString());
+      });
+    }
+  }
+
+  void _resetForm() {
+    _formKey.currentState?.reset();
+    setState(() {
+      _selectedDate = DateTime.now();
+      _selectedTipe = 'MASUK';
+      _tanggalController.text = Helpers.formatDate(_selectedDate.toString());
+      _nominalController.clear();
+      _keteranganController.clear();
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.refresh_rounded, color: Colors.white),
+            const SizedBox(width: 8),
+            const Text('Form berhasil direset'),
+          ],
+        ),
+        backgroundColor: const Color(0xFF2a5298),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  void _simpanTransaksi() async {
+    if (_formKey.currentState!.validate()) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF2a5298), Color(0xFF3b82f6)],
+              ),
+            ),
+            child: const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  strokeWidth: 3,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Menyimpan transaksi...',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final token = prefs.getString('token');
+
+        final nominal = _nominalController.text.replaceAll('.', '');
+        final Map<String, dynamic> requestData = {
+          'tanggal': Helpers.formatDateForApi(_selectedDate),
+          'tipe': _selectedTipe,
+          'nominal': int.parse(nominal),
+          'keterangan': _keteranganController.text,
+        };
+
+        if (isEdit && _transactionId != null) {
+          requestData['id'] = _transactionId;
+        }
+
+        final response = await http.post(
+          Uri.parse('$baseUrl/simpan-transaksi'),
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode(requestData),
+        );
+
+        Navigator.pop(context);
+
+        final responseData = jsonDecode(response.body);
+
+        if (response.statusCode == 200 && responseData['status'] == true) {
+          Toast.showSuccessToast(
+            context,
+            responseData['message'] ??
+                'Transaksi ${_getTipeLabel()} telah disimpan',
+          );
+          Navigator.pop(context, {
+            'success': true,
+            'action': isEdit ? 'update' : 'create',
+          });
+        } else {
+          Toast.showErrorToast(
+            context,
+            responseData['message'] ?? 'Gagal menyimpan transaksi',
+          );
+        }
+      } catch (e) {
+        Navigator.pop(context);
+        Toast.showErrorToast(context, 'Error: ${e.toString()}');
+      }
+    }
+  }
+
+  String _getTipeLabel() {
+    final option = _tipeOptions.firstWhere(
+      (opt) => opt['value'] == _selectedTipe,
+    );
+    return option['label'];
   }
 
   @override
@@ -244,16 +503,18 @@ class _FormTransaksiState extends State<FormTransaksi>
                 ),
               ),
               const SizedBox(width: 16),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Transaksi Baru',
-                      style: TextStyle(fontSize: 20, color: Colors.white),
+                      isEdit ? 'Edit Transaksi' : 'Transaksi Baru',
+                      style: const TextStyle(fontSize: 20, color: Colors.white),
                     ),
                     Text(
-                      'Tambahkan data transaksi keuangan Anda',
+                      isEdit
+                          ? 'Ubah data transaksi keuangan Anda'
+                          : 'Tambahkan data transaksi keuangan Anda',
                       style: TextStyle(fontSize: 14, color: Colors.white70),
                     ),
                   ],
@@ -674,14 +935,14 @@ class _FormTransaksiState extends State<FormTransaksi>
                 borderRadius: BorderRadius.circular(16),
               ),
             ),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.save_rounded, color: Colors.white, size: 24),
-                SizedBox(width: 12),
+                const Icon(Icons.save_rounded, color: Colors.white, size: 24),
+                const SizedBox(width: 12),
                 Text(
-                  'Simpan Transaksi',
-                  style: TextStyle(fontSize: 18, color: Colors.white),
+                  isEdit ? 'Simpan Perubahan' : 'Simpan Transaksi',
+                  style: const TextStyle(fontSize: 18, color: Colors.white),
                 ),
               ],
             ),
@@ -714,139 +975,15 @@ class _FormTransaksiState extends State<FormTransaksi>
       ],
     );
   }
+}
 
-  Future<void> _selectDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF2a5298),
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Color(0xFF1e293b),
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-        _tanggalController.text = _formatDate(picked);
-      });
-    }
-  }
-
-  void _resetForm() {
-    _formKey.currentState?.reset();
-    setState(() {
-      _selectedDate = DateTime.now();
-      _selectedTipe = 'MASUK';
-      _tanggalController.text = _formatDate(_selectedDate);
-      _nominalController.clear();
-      _keteranganController.clear();
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.refresh_rounded, color: Colors.white),
-            const SizedBox(width: 8),
-            const Text('Form berhasil direset'),
-          ],
-        ),
-        backgroundColor: const Color(0xFF2a5298),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-  }
-
-  void _simpanTransaksi() {
-    if (_formKey.currentState!.validate()) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              gradient: const LinearGradient(
-                colors: [Color(0xFF2a5298), Color(0xFF3b82f6)],
-              ),
-            ),
-            child: const Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  strokeWidth: 3,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'Menyimpan transaksi...',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+String _formatCurrency(double value) {
+  return value
+      .toStringAsFixed(0)
+      .replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+        (Match m) => '${m[1]}.',
       );
-
-      Future.delayed(const Duration(seconds: 2), () {
-        Navigator.pop(context);
-
-        Toast.showSuccessToast(
-          context,
-          'Transaksi ${_getTipeLabel()} telah disimpan',
-        );
-
-        Navigator.pop(context);
-      });
-    }
-  }
-
-  String _formatDate(DateTime date) {
-    final months = [
-      'Januari',
-      'Februari',
-      'Maret',
-      'April',
-      'Mei',
-      'Juni',
-      'Juli',
-      'Agustus',
-      'September',
-      'Oktober',
-      'November',
-      'Desember',
-    ];
-    return '${date.day} ${months[date.month - 1]} ${date.year}';
-  }
-
-  String _getTipeLabel() {
-    final option = _tipeOptions.firstWhere(
-      (opt) => opt['value'] == _selectedTipe,
-    );
-    return option['label'];
-  }
 }
 
 class _CurrencyInputFormatter extends TextInputFormatter {
@@ -866,14 +1003,5 @@ class _CurrencyInputFormatter extends TextInputFormatter {
       text: newText,
       selection: TextSelection.collapsed(offset: newText.length),
     );
-  }
-
-  String _formatCurrency(double value) {
-    return value
-        .toStringAsFixed(0)
-        .replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]}.',
-        );
   }
 }
