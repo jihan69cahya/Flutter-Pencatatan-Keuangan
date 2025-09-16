@@ -161,7 +161,6 @@ class _ProfileState extends State<Profile> {
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 24,
-                            fontWeight: FontWeight.bold,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -202,39 +201,36 @@ class _ProfileState extends State<Profile> {
                           subtitle: userPhone,
                         ),
                         const SizedBox(height: 30),
-                        // SizedBox(
-                        //   width: double.infinity,
-                        //   height: 50,
-                        //   child: ElevatedButton(
-                        //     onPressed: () {
-                        //       _showEditProfileDialog(context);
-                        //     },
-                        //     style: ElevatedButton.styleFrom(
-                        //       backgroundColor: const Color(0xFF2a5298),
-                        //       foregroundColor: Colors.white,
-                        //       shape: RoundedRectangleBorder(
-                        //         borderRadius: BorderRadius.circular(12),
-                        //       ),
-                        //       elevation: 2,
-                        //     ),
-                        //     child: const Row(
-                        //       mainAxisAlignment: MainAxisAlignment.center,
-                        //       children: [
-                        //         Icon(Icons.edit_outlined),
-                        //         SizedBox(width: 8),
-                        //         Text(
-                        //           'Edit Profile',
-                        //           style: TextStyle(
-                        //             fontSize: 16,
-                        //             fontWeight: FontWeight.w600,
-                        //           ),
-                        //         ),
-                        //       ],
-                        //     ),
-                        //   ),
-                        // ),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              _showEditProfileDialog(context);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2a5298),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 2,
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.edit_outlined),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Edit Profile',
+                                  style: TextStyle(fontSize: 16),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
 
-                        // const SizedBox(height: 16),
+                        const SizedBox(height: 16),
                         SizedBox(
                           width: double.infinity,
                           height: 50,
@@ -329,8 +325,12 @@ class _ProfileState extends State<Profile> {
     );
   }
 
-  void _showEditProfileDialog(BuildContext context) {
-    Navigator.pushNamed(context, '/form-profile');
+  void _showEditProfileDialog(BuildContext context) async {
+    final result = await Navigator.pushNamed(context, '/form-profile');
+
+    if (result == true) {
+      _fetchProfile();
+    }
   }
 
   void _showLogoutDialog(BuildContext context) {

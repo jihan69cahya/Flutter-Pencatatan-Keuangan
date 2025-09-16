@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-
 import 'package:pencatatan/widgets/toast.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'dart:convert';
 
 class FormProfile extends StatefulWidget {
   const FormProfile({super.key});
@@ -25,18 +28,61 @@ class _FormProfileState extends State<FormProfile> {
   bool _obscureConfirmPassword = true;
   bool _isChangePassword = false;
   bool _isLoading = false;
+  bool isLoading = true;
 
-  File? _selectedImage;
-  final ImagePicker _picker = ImagePicker();
-  String _currentAvatarUrl =
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face";
+  final String baseUrl = dotenv.env['BASE_URL'] ?? 'URL_NOT_FOUND';
 
   @override
   void initState() {
     super.initState();
-    _nameController.text = "Jihan Cahya";
-    _emailController.text = "jihan69cahya@gmail.com";
-    _phoneController.text = "+6289541458042";
+    _fetchProfile();
+  }
+
+  Future<void> _fetchProfile() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (token == null) {
+      if (!mounted) return;
+      Toast.showErrorToast(context, "Token tidak ditemukan");
+      return;
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/profile'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body)['data'];
+        setState(() {
+          _nameController.text = jsonData['name'] ?? '';
+          _emailController.text = jsonData['email'] ?? '';
+          _phoneController.text = jsonData['telp'] ?? '';
+          isLoading = false;
+        });
+      } else {
+        Toast.showErrorToast(context, "Gagal mengambil data profile");
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      Toast.showErrorToast(context, "Terjadi kesalahan: $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   @override
@@ -55,10 +101,7 @@ class _FormProfileState extends State<FormProfile> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text(
-          'Edit Profile',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-        ),
+        title: const Text('Edit Profile', style: TextStyle(fontSize: 20)),
         backgroundColor: const Color(0xFF2a5298),
         foregroundColor: Colors.white,
         elevation: 0,
@@ -101,53 +144,15 @@ class _FormProfileState extends State<FormProfile> {
                           ),
                           child: CircleAvatar(
                             radius: 60,
-                            backgroundImage: _selectedImage != null
-                                ? FileImage(_selectedImage!)
-                                : NetworkImage(_currentAvatarUrl)
-                                      as ImageProvider,
+                            backgroundImage: AssetImage('assets/profile.png'),
                             backgroundColor: Colors.grey[300],
-                            child:
-                                _selectedImage == null &&
-                                    _currentAvatarUrl.isEmpty
-                                ? const Icon(
-                                    Icons.person,
-                                    size: 60,
-                                    color: Colors.grey,
-                                  )
-                                : null,
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: GestureDetector(
-                            onTap: _showImagePickerDialog,
-                            child: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black26,
-                                    blurRadius: 4,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.camera_alt,
-                                color: Color(0xFF2a5298),
-                                size: 20,
-                              ),
-                            ),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      'Tap foto untuk mengubah',
+                      'Perbarui informasi akun dan keamanan Anda',
                       style: TextStyle(color: Colors.white70, fontSize: 14),
                     ),
                     const SizedBox(height: 30),
@@ -333,10 +338,7 @@ class _FormProfileState extends State<FormProfile> {
                               )
                             : const Text(
                                 'Simpan Perubahan',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: TextStyle(fontSize: 16),
                               ),
                       ),
                     ),
@@ -438,65 +440,6 @@ class _FormProfileState extends State<FormProfile> {
     );
   }
 
-  void _showImagePickerDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Pilih Foto Profile'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.camera_alt, color: Color(0xFF2a5298)),
-                title: const Text('Kamera'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.camera);
-                },
-              ),
-              ListTile(
-                leading: const Icon(
-                  Icons.photo_library,
-                  color: Color(0xFF2a5298),
-                ),
-                title: const Text('Galeri'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.gallery);
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _pickImage(ImageSource source) async {
-    try {
-      final XFile? pickedFile = await _picker.pickImage(
-        source: source,
-        maxWidth: 512,
-        maxHeight: 512,
-        imageQuality: 80,
-      );
-
-      if (pickedFile != null) {
-        setState(() {
-          _selectedImage = File(pickedFile.path);
-        });
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gagal mengambil gambar: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -506,14 +449,73 @@ class _FormProfileState extends State<FormProfile> {
       _isLoading = true;
     });
 
-    await Future.delayed(const Duration(seconds: 2));
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
 
-    setState(() {
-      _isLoading = false;
-    });
+    if (token == null) {
+      if (!mounted) return;
+      Toast.showErrorToast(context, "Token tidak ditemukan");
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
 
-    Toast.showSuccessToast(context, 'Profile berhasil diperbarui!');
+    try {
+      Map<String, dynamic> requestBody = {
+        'name': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'telp': _phoneController.text.trim(),
+      };
 
-    Navigator.pop(context);
+      if (_isChangePassword) {
+        requestBody.addAll({
+          'current_password': _currentPasswordController.text,
+          'new_password': _newPasswordController.text,
+          'new_password_confirmation': _confirmPasswordController.text,
+        });
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/update-profile'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode(requestBody),
+      );
+
+      if (!mounted) return;
+
+      final responseData = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        Toast.showSuccessToast(context, 'Profile berhasil diperbarui!');
+
+        if (_isChangePassword) {
+          _currentPasswordController.clear();
+          _newPasswordController.clear();
+          _confirmPasswordController.clear();
+          setState(() {
+            _isChangePassword = false;
+          });
+        }
+
+        Navigator.pop(context, true);
+      } else {
+        String errorMessage = responseData['message'];
+        Toast.showErrorToast(context, errorMessage);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Toast.showErrorToast(context, "Terjadi kesalahan: ${e.toString()}");
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 }
