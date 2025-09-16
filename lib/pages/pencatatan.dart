@@ -25,6 +25,8 @@ class _PencatatanState extends State<Pencatatan> {
   int totalItems = 0;
   int itemsPerPage = 10;
 
+  final List<int> itemsPerPageOptions = [10, 20, 50, 100];
+
   @override
   void initState() {
     super.initState();
@@ -91,10 +93,10 @@ class _PencatatanState extends State<Pencatatan> {
             };
           }).toList();
 
-          currentPage = pagination['current_page'] ?? 1;
-          totalPages = pagination['last_page'] ?? 1;
-          totalItems = pagination['total'] ?? 0;
-          itemsPerPage = pagination['per_page'] ?? 20;
+          currentPage = int.tryParse('${pagination['current_page']}') ?? 1;
+          totalPages = int.tryParse('${pagination['last_page']}') ?? 1;
+          totalItems = int.tryParse('${pagination['total']}') ?? 0;
+          itemsPerPage = int.tryParse('${pagination['per_page']}') ?? 20;
         });
       } else {
         debugPrint('Gagal fetch data transaksi: ${response.statusCode}');
@@ -123,6 +125,16 @@ class _PencatatanState extends State<Pencatatan> {
           isLoading = false;
         });
       }
+    }
+  }
+
+  void _changeItemsPerPage(int newItemsPerPage) {
+    if (newItemsPerPage != itemsPerPage) {
+      setState(() {
+        itemsPerPage = newItemsPerPage;
+        currentPage = 1;
+      });
+      _fetchDataTransaksi(page: 1);
     }
   }
 
@@ -243,104 +255,175 @@ class _PencatatanState extends State<Pencatatan> {
       ),
       body: Column(
         children: [
+          // Header with view toggle and items per page selector
           Container(
             color: Colors.white,
             padding: const EdgeInsets.all(16),
-            child: Row(
+            child: Column(
               children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                isTableView = true;
-                              });
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                color: isTableView
-                                    ? const Color(0xFF2a5298)
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.table_chart,
-                                    size: 18,
+                // View Toggle
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    isTableView = true;
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                  decoration: BoxDecoration(
                                     color: isTableView
-                                        ? Colors.white
-                                        : Colors.grey[600],
+                                        ? const Color(0xFF2a5298)
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Buku Tabungan',
-                                    style: TextStyle(
-                                      color: isTableView
-                                          ? Colors.white
-                                          : Colors.grey[600],
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 12,
-                                    ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.table_chart,
+                                        size: 18,
+                                        color: isTableView
+                                            ? Colors.white
+                                            : Colors.grey[600],
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Buku Tabungan',
+                                        style: TextStyle(
+                                          color: isTableView
+                                              ? Colors.white
+                                              : Colors.grey[600],
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                isTableView = false;
-                              });
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                color: !isTableView
-                                    ? const Color(0xFF2a5298)
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.list,
-                                    size: 18,
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    isTableView = false;
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                  decoration: BoxDecoration(
                                     color: !isTableView
-                                        ? Colors.white
-                                        : Colors.grey[600],
+                                        ? const Color(0xFF2a5298)
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Per Transaksi',
-                                    style: TextStyle(
-                                      color: !isTableView
-                                          ? Colors.white
-                                          : Colors.grey[600],
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 12,
-                                    ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.list,
+                                        size: 18,
+                                        color: !isTableView
+                                            ? Colors.white
+                                            : Colors.grey[600],
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Per Transaksi',
+                                        style: TextStyle(
+                                          color: !isTableView
+                                              ? Colors.white
+                                              : Colors.grey[600],
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+
+                // Items per page selector
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Tampilkan:',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[700],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: const Color(0xFF2a5298),
+                          width: 1,
+                        ),
+                        borderRadius: BorderRadius.circular(6),
+                        color: Colors.white,
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<int>(
+                          value: itemsPerPage,
+                          isDense: true,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF2a5298),
+                            fontWeight: FontWeight.w600,
+                          ),
+                          items: itemsPerPageOptions.map((int value) {
+                            return DropdownMenuItem<int>(
+                              value: value,
+                              child: Text('$value data'),
+                            );
+                          }).toList(),
+                          onChanged: (int? newValue) {
+                            if (newValue != null) {
+                              _changeItemsPerPage(newValue);
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                    Text(
+                      'Total: $totalItems data',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[700],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -707,7 +790,9 @@ class _PencatatanState extends State<Pencatatan> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      transaksi['keterangan'],
+                      transaksi['keterangan'].length > 35
+                          ? '${transaksi['keterangan'].substring(0, 35)}...'
+                          : transaksi['keterangan'],
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,

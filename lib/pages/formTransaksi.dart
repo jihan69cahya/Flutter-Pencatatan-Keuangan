@@ -30,7 +30,7 @@ class _FormTransaksiState extends State<FormTransaksi>
 
   final String baseUrl = dotenv.env['BASE_URL'] ?? 'URL_NOT_FOUND';
 
-  String _selectedTipe = 'MASUK';
+  String _selectedTipe = '';
   DateTime _selectedDate = DateTime.now();
 
   final List<Map<String, dynamic>> _allTipeOptions = [
@@ -196,7 +196,6 @@ class _FormTransaksiState extends State<FormTransaksi>
     _formKey.currentState?.reset();
     setState(() {
       _selectedDate = DateTime.now();
-      _selectedTipe = 'MASUK';
       _tanggalController.text = Helpers.formatDate(_selectedDate.toString());
       _nominalController.clear();
       _keteranganController.clear();
