@@ -9,21 +9,32 @@ import 'package:pencatatan/pages/profile.dart';
 import 'package:pencatatan/pages/formTransaksi.dart';
 import 'package:pencatatan/pages/formProfile.dart';
 import 'package:toastification/toastification.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
-  runApp(ToastificationWrapper(child: const MyApp()));
+
+  final prefs = await SharedPreferences.getInstance();
+  final String? token = prefs.getString('token');
+
+  runApp(
+    ToastificationWrapper(
+      child: MyApp(initialRoute: token == null ? '/login' : '/main'),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final String initialRoute;
+  const MyApp({super.key, required this.initialRoute});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Pencatatan',
-      home: const Login(),
+      initialRoute: initialRoute,
       routes: {
         '/main': (context) => Main(),
         '/login': (context) => Login(),
