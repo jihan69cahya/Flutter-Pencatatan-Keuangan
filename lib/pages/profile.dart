@@ -151,8 +151,12 @@ class _ProfileState extends State<Profile> {
                           ),
                           child: CircleAvatar(
                             radius: 60,
-                            backgroundImage: AssetImage('assets/profile.png'),
                             backgroundColor: Colors.grey[300],
+                            child: Icon(
+                              Icons.person,
+                              size: 60,
+                              color: Color(0xFF2a5298),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 16),

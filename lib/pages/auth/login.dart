@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:pencatatan/widgets/toast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -18,16 +19,26 @@ class _LoginState extends State<Login> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
+  bool _rememberMe = false;
   String _appVersion = '';
   bool _loading = false;
 
   final String baseUrl = dotenv.env['BASE_URL'] ?? 'URL_NOT_FOUND';
+
+  static const _secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      encryptedSharedPreferences: true,
+      keyCipherAlgorithm: KeyCipherAlgorithm.RSA_ECB_PKCS1Padding,
+      storageCipherAlgorithm: StorageCipherAlgorithm.AES_GCM_NoPadding,
+    ),
+  );
 
   @override
   void initState() {
     super.initState();
     _loadAppVersion();
     _checkToken();
+    _loadRememberedCredentials();
   }
 
   void _checkToken() async {
@@ -36,6 +47,68 @@ class _LoginState extends State<Login> {
     if (token != null) {
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/main');
+    }
+  }
+
+  Future<void> _loadRememberedCredentials() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final isRememberMe = prefs.getBool('remember_me') ?? false;
+
+      if (isRememberMe) {
+        final rememberedEmail = await _secureStorage.read(key: 'secure_email');
+        final rememberedPassword = await _secureStorage.read(
+          key: 'secure_password',
+        );
+
+        if (rememberedEmail != null && rememberedPassword != null) {
+          setState(() {
+            _emailController.text = rememberedEmail;
+            _passwordController.text = rememberedPassword;
+            _rememberMe = true;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading credentials: $e');
+      await _clearStoredCredentials();
+    }
+  }
+
+  Future<void> _handleRememberMe() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      if (_rememberMe) {
+        await _secureStorage.write(
+          key: 'secure_email',
+          value: _emailController.text.trim(),
+        );
+        await _secureStorage.write(
+          key: 'secure_password',
+          value: _passwordController.text.trim(),
+        );
+        await prefs.setBool('remember_me', true);
+
+        if (!mounted) return;
+      } else {
+        await _clearStoredCredentials();
+        if (!mounted) return;
+      }
+    } catch (e) {
+      print('Error handling remember me: $e');
+      Toast.showErrorToast(context, "Gagal menyimpan data login");
+    }
+  }
+
+  Future<void> _clearStoredCredentials() async {
+    try {
+      await _secureStorage.delete(key: 'secure_email');
+      await _secureStorage.delete(key: 'secure_password');
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('remember_me', false);
+    } catch (e) {
+      print('Error clearing credentials: $e');
     }
   }
 
@@ -57,6 +130,8 @@ class _LoginState extends State<Login> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _loading = true);
+
+    await _handleRememberMe();
 
     final url = Uri.parse('$baseUrl/login');
     try {
@@ -83,6 +158,10 @@ class _LoginState extends State<Login> {
         Toast.showSuccessToast(context, "Berhasil Login");
         Navigator.pushReplacementNamed(context, '/main');
       } else {
+        if (_rememberMe) {
+          await _clearStoredCredentials();
+          setState(() => _rememberMe = false);
+        }
         Toast.showErrorToast(context, data['message'] ?? "Login gagal");
       }
     } catch (e) {
@@ -90,6 +169,15 @@ class _LoginState extends State<Login> {
     } finally {
       setState(() => _loading = false);
     }
+  }
+
+  Future<void> _clearRememberedData() async {
+    await _clearStoredCredentials();
+    setState(() {
+      _rememberMe = false;
+      _emailController.clear();
+      _passwordController.clear();
+    });
   }
 
   InputDecoration _inputDecoration(String label, String hint, IconData icon) {
@@ -139,7 +227,6 @@ class _LoginState extends State<Login> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 60),
-                // icon
                 Container(
                   height: 100,
                   width: 100,
@@ -171,7 +258,6 @@ class _LoginState extends State<Login> {
                 ),
                 const SizedBox(height: 48),
 
-                // email
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -196,7 +282,6 @@ class _LoginState extends State<Login> {
 
                 const SizedBox(height: 16),
 
-                // password
                 TextFormField(
                   controller: _passwordController,
                   obscureText: !_isPasswordVisible,
@@ -232,6 +317,67 @@ class _LoginState extends State<Login> {
                   },
                 ),
 
+                const SizedBox(height: 16),
+
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _rememberMe,
+                      onChanged: (value) {
+                        setState(() {
+                          _rememberMe = value ?? false;
+                        });
+                      },
+                      activeColor: Colors.white,
+                      checkColor: const Color(0xFF2a5298),
+                      side: const BorderSide(color: Colors.white70),
+                    ),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Ingat saya',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            'Data dienkripsi dengan aman',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                if (_rememberMe)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: TextButton.icon(
+                      onPressed: _clearRememberedData,
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.white70,
+                        size: 18,
+                      ),
+                      label: const Text(
+                        'Hapus data tersimpan',
+                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
+                      style: TextButton.styleFrom(
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                    ),
+                  ),
+
                 const SizedBox(height: 24),
 
                 ElevatedButton(
@@ -261,6 +407,29 @@ class _LoginState extends State<Login> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+                ),
+
+                const SizedBox(height: 24),
+
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.white30),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.security, color: Colors.white70, size: 16),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Data login Anda dienkripsi menggunakan teknologi keamanan tingkat militer',
+                          style: TextStyle(color: Colors.white70, fontSize: 11),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
 
                 const SizedBox(height: 24),
