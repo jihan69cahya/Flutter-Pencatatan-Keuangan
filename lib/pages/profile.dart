@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:pencatatan/pages/auth/login.dart';
 import 'package:pencatatan/widgets/toast.dart';
@@ -18,6 +19,7 @@ class _ProfileState extends State<Profile> {
   String userEmail = '';
   String userPhone = '';
   bool isLoading = true;
+  bool isLoggingOut = false;
 
   final String baseUrl = dotenv.env['BASE_URL'] ?? 'URL_NOT_FOUND';
 
@@ -75,203 +77,251 @@ class _ProfileState extends State<Profile> {
   }
 
   Future<void> _performLogout() async {
+    setState(() {
+      isLoggingOut = true;
+    });
+
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
 
     if (token == null) {
       if (!mounted) return;
+      setState(() {
+        isLoggingOut = false;
+      });
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Token tidak ditemukan')));
       return;
     }
 
-    final response = await http.post(
-      Uri.parse('$baseUrl/logout'),
-      headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
-    );
-
-    if (!mounted) return;
-
-    if (response.statusCode == 200) {
-      await prefs.remove('token');
-      if (!mounted) return;
-      Toast.showSuccessToast(context, "Anda telah keluar dari sesi");
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const Login()),
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/logout'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
       );
-    } else {
-      Toast.showErrorToast(context, "Gagal Logout");
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        await prefs.remove('token');
+        if (!mounted) return;
+        Toast.showSuccessToast(context, "Anda telah keluar dari sesi");
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const Login()),
+        );
+      } else {
+        Toast.showErrorToast(context, "Gagal Logout");
+      }
+    } catch (e) {
+      Toast.showErrorToast(context, "Terjadi kesalahan: $e");
     }
+
+    setState(() {
+      isLoggingOut = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: const Text('Profile', style: TextStyle(fontSize: 20)),
-        backgroundColor: const Color(0xFF2a5298),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        automaticallyImplyLeading: false,
-      ),
-      body: isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF2a5298)),
-            )
-          : SingleChildScrollView(
-              child: Column(
-                children: [
-                  Container(
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Color(0xFF2a5298), Color(0xFF3d6bb3)],
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 20),
-                        Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 4),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 10,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
-                          ),
-                          child: CircleAvatar(
-                            radius: 60,
-                            backgroundColor: Colors.grey[300],
-                            child: Icon(
-                              Icons.person,
-                              size: 60,
-                              color: Color(0xFF2a5298),
-                            ),
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: Colors.grey[50],
+          appBar: AppBar(
+            title: const Text('Profile', style: TextStyle(fontSize: 20)),
+            backgroundColor: const Color(0xFF2a5298),
+            foregroundColor: Colors.white,
+            elevation: 0,
+            centerTitle: true,
+            automaticallyImplyLeading: false,
+          ),
+          body: isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF2a5298)),
+                )
+              : SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Color(0xFF2a5298), Color(0xFF3d6bb3)],
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          userName,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Pengguna',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 30),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Informasi Personal',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2a5298),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildInfoCard(
-                          icon: Icons.email_outlined,
-                          title: 'Email',
-                          subtitle: userEmail,
-                        ),
-                        const SizedBox(height: 12),
-                        _buildInfoCard(
-                          icon: Icons.phone_outlined,
-                          title: 'Nomor Telepon',
-                          subtitle: userPhone,
-                        ),
-                        const SizedBox(height: 30),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              _showEditProfileDialog(context);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF2a5298),
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              elevation: 2,
-                            ),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.edit_outlined),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Edit Profile',
-                                  style: TextStyle(fontSize: 16),
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 20),
+                            Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 4,
                                 ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: OutlinedButton(
-                            onPressed: () {
-                              _showLogoutDialog(context);
-                            },
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.red[600],
-                              side: BorderSide(color: Colors.red[600]!),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 5),
+                                  ),
+                                ],
+                              ),
+                              child: CircleAvatar(
+                                radius: 60,
+                                backgroundColor: Colors.grey[300],
+                                child: const Icon(
+                                  Icons.person,
+                                  size: 60,
+                                  color: Color(0xFF2a5298),
+                                ),
                               ),
                             ),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.logout),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Logout',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
+                            const SizedBox(height: 16),
+                            Text(
+                              userName,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Pengguna',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.8),
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 30),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Informasi Personal',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2a5298),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            _buildInfoCard(
+                              icon: Icons.email_outlined,
+                              title: 'Email',
+                              subtitle: userEmail,
+                            ),
+                            const SizedBox(height: 12),
+                            _buildInfoCard(
+                              icon: Icons.phone_outlined,
+                              title: 'Nomor Telepon',
+                              subtitle: userPhone,
+                            ),
+                            const SizedBox(height: 30),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 50,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  _showEditProfileDialog(context);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF2a5298),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  elevation: 2,
+                                ),
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.edit_outlined),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Edit Profile',
+                                      style: TextStyle(fontSize: 16),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 50,
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  _showLogoutDialog(context);
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.red[600],
+                                  side: BorderSide(color: Colors.red[600]!),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
-                              ],
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.logout),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Logout',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(height: 20),
+                          ],
                         ),
-                        const SizedBox(height: 20),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
+        ),
+
+        // Full screen overlay loading saat logout
+        if (isLoggingOut)
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withOpacity(0.3),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                child: const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(color: Colors.white),
+                      SizedBox(height: 16),
+                      Text(
+                        "Logging out...",
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
+          ),
+      ],
     );
   }
 
@@ -331,7 +381,6 @@ class _ProfileState extends State<Profile> {
 
   void _showEditProfileDialog(BuildContext context) async {
     final result = await Navigator.pushNamed(context, '/form-profile');
-
     if (result == true) {
       _fetchProfile();
     }
